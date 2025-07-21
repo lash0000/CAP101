@@ -1,4 +1,4 @@
-# CAP101 backend (work in progress)
+# CAP101 backend (wip)
 Backend infrastructure for SQL, APIs and so for.
 
 ```term
