@@ -21,3 +21,18 @@ Your new Service "cap101" is ready. Here are next steps:
 
 ## Details
 This is Serverless Framework App based that empowers Express up to production scale.
+
+## Installation
+> [!NOTE]
+> During installation, just ignore errors from mismanaged versions from `serverless-dotenv-plugin` and `serverless-offline`.
+
+```term
+npm install
+```
+
+## Usage
+This will load all serverless plugin installed. 
+
+```term
+npm start
+```

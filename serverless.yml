@@ -1,19 +1,45 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: hobbyist
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
 app: cap101
-# "service" is the name of this project. This will also be added to your AWS resource names.
 service: cap101
+
+plugins:
+  - serverless-dotenv-plugin
+  - serverless-offline
 
 provider:
   name: aws
+  versionFunctions: false
   runtime: nodejs20.x
-  # Uncomment to easily set up a custom domain. Read the docs for more details:
-  # https://www.serverless.com/framework/docs/providers/aws/guide/domains
-  # domain: api.example.com
+  region: ap-southeast-2
+  httpApi:
+    cors:
+      allowedOrigins:
+        - http://localhost:5000/
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
+      allowedHeaders:
+        - Content-Type
+        - Authorization
+      maxAge: 3600
+
+package:
+  individually: true
+  exclude:
+    - test/**
+    - .git/**
+    - .vscode/**
+    - venv/**
+    - coverage/**
 
 functions:
-  api:
-    handler: handler.handler
+  mainRoutes:
+    handler: src/app.handler
+    timeout: 28
     events:
-      - httpApi: "*"
+      - httpApi:
+          path: /{proxy+}
+          method: get
