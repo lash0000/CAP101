@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const cors = require('cors');
 const serverless = require('serverless-http');
 const mainRoutes = require('./routes/helper');
+const sequelize = require('./config/db.config');
 
 dotenv.config();
 const app = express();
@@ -10,23 +11,36 @@ const app = express();
 // Middleware (only apply body parsing where needed, e.g., for POST/PUT)
 app.use(cors());
 
-// Home route
+// Use routes
+app.use('/api/v1/data', mainRoutes);
+
+// Main route
 app.get('/', (req, res) => {
   res.json({
-    project_name: "CAP101 with CockroachDB, REST APIs, SMTP and AWS",
-    project_overview: "This empowers AWS Lambda, AWS S3 and CockroachDB.",
+    project_name: "CAP101 x CockroachDB",
+    project_overview: "Serverless architecture with Sequelize, REST, Nodemailer & AWS S3.",
     source_code: "https://github.com/lash0000/CAP101",
     version: "0xx",
     api_base_url: "/api/v1/data/{route}",
     description: "A REST API method for CAP101 playbook.",
     available_routes: [
-      "/api/v1/data/xxx",
+      "/api/v1/data/users",
+      "/api/v1/data/xxx"
     ]
   });
 });
 
-// Use routes
-app.use('/api/v1/data', mainRoutes);
+// Sequelize (ORM) thru my postgre
+const testDbConnection = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('PostgreSQL database is connected YAAY');
+  } catch (err) {
+    console.error('Database connection error:', err);
+    setTimeout(testDbConnection, 5000);
+  }
+};
+testDbConnection();
 
 // Export handler for Serverless
 module.exports.handler = serverless(app);

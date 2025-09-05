@@ -11,6 +11,12 @@ provider:
   versionFunctions: false
   runtime: nodejs20.x
   region: ap-southeast-2
+  environment:
+    POSTGRE_HOST: ${env:POSTGRE_HOST}
+    POSTGRE_PORT: ${env:POSTGRE_PORT}
+    POSTGRE_DB_NAME: ${env:POSTGRE_DB_NAME}
+    POSTGRE_DB_USER: ${env:POSTGRE_DB_USER}
+    POSTGRE_DB_PWD: ${env:POSTGRE_DB_PWD}
   httpApi:
     cors:
       allowedOrigins:
