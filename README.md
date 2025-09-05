@@ -27,7 +27,7 @@ This is Serverless Framework App based that empowers Express up to production sc
 > During installation, just ignore errors from mismanaged versions from `serverless-dotenv-plugin` and `serverless-offline` if you need to add more dependencies just do `npm install <pkgname> --force`.
 
 ```term
-npm install
+npm install --force
 ```
 
 ## Usage
