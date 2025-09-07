@@ -1,94 +1,158 @@
-# Automated script to install CockroachDB SQL shell, update PATH, and check for Node.js/npm
-$ErrorActionPreference = "Stop"
-$ProgressPreference = 'SilentlyContinue'
+# Automated Installation Script for Chocolatey, CockroachDB, Node.js, and npm
+# UI-Rich with Colored Output and Progress Indicators
 
-# Define variables
-$CockroachVersion = "v25.3.1"
-$DownloadUrl = "https://binaries.cockroachdb.com/cockroach-sql-$CockroachVersion.windows-6.2-amd64.zip"
-$InstallDir = "$env:APPDATA\CockroachDB"
-$ZipFile = "$env:TEMP\cockroach-sql-$CockroachVersion.zip"
-$BinaryPath = "$InstallDir\cockroach-sql.exe"
-
-# Step 1: Download and install CockroachDB SQL shell
-Write-Host "Downloading CockroachDB SQL shell ($CockroachVersion)..."
-try {
-    # Create install directory if it doesn't exist
-    New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-
-    # Download the zip file
-    Invoke-WebRequest -Uri $DownloadUrl -OutFile $ZipFile
-
-    # Extract the zip file
-    Write-Host "Extracting archive..."
-    Expand-Archive -Force -Path $ZipFile -DestinationPath $InstallDir
-
-    # Move the executable to the install directory (if not already in the correct location)
-    $ExtractedBinary = "$InstallDir\cockroach-sql-$CockroachVersion.windows-6.2-amd64\cockroach-sql.exe"
-    if (Test-Path $ExtractedBinary) {
-        Move-Item -Force -Path $ExtractedBinary -Destination $BinaryPath
-        Remove-Item -Path "$InstallDir\cockroach-sql-$CockroachVersion.windows-6.2-amd64" -Recurse -Force
-    }
-} catch {
-    Write-Host "Error during download or extraction: $_"
-    exit 1
+# Function to display formatted headers
+function Write-Header {
+    param($Message)
+    Write-Host "`n" -NoNewline
+    Write-Host "=====================================" -ForegroundColor Cyan
+    Write-Host $Message -ForegroundColor Yellow
+    Write-Host "=====================================" -ForegroundColor Cyan
 }
 
-# Step 2: Update PATH
-Write-Host "Updating PATH to include CockroachDB..."
-$currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-if ($currentPath -notlike "*$InstallDir*") {
-    [Environment]::SetEnvironmentVariable("Path", "$currentPath;$InstallDir", "User")
-    $env:Path += ";$InstallDir"
-    Write-Host "Added $InstallDir to user PATH."
+# Function to display success message
+function Write-Success {
+    param($Message)
+    Write-Host "[SUCCESS] $Message" -ForegroundColor Green
+}
+
+# Function to display error message
+function Write-ErrorMessage {
+    param($Message)
+    Write-Host "[ERROR] $Message" -ForegroundColor Red
+}
+
+# Function to display info message
+function Write-Info {
+    param($Message)
+    Write-Host "[INFO] $Message" -ForegroundColor Magenta
+}
+
+# Step 1: Check if Chocolatey is installed
+Write-Header "Checking for Chocolatey Installation"
+$chocoPath = Get-Command choco -ErrorAction SilentlyContinue
+if ($chocoPath) {
+    Write-Success "Chocolatey is already installed at $($chocoPath.Source)"
 } else {
-    Write-Host "CockroachDB directory already in PATH."
-}
+    Write-Info "Chocolatey not found. Installing Chocolatey..."
 
-# Step 3: Verify CockroachDB SQL shell installation
-Write-Host "Verifying CockroachDB SQL shell installation..."
-try {
-    $cockroachVersion = & cockroach-sql version --build-tag
-    if ($cockroachVersion -match $CockroachVersion) {
-        Write-Host "Success: CockroachDB SQL shell ($cockroachVersion) is installed and accessible."
+    # Define variables for Chocolatey installation
+    $MsiUrl = "https://github.com/chocolatey/choco/releases/download/2.5.1/chocolatey-2.5.1.msi"
+    $MsiFile = "$env:TEMP\chocolatey-2.5.1.msi"
+    $InstallLog = "$env:TEMP\chocolatey-install.log"
+
+    # Download Chocolatey MSI
+    Write-Info "Downloading Chocolatey Package Manager from $MsiUrl..."
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $MsiUrl -OutFile $MsiFile
+        Write-Success "Downloaded Chocolatey MSI"
+    } catch {
+        Write-ErrorMessage "Failed to download Chocolatey MSI: $_"
+        exit 1
+    }
+
+    # Install Chocolatey MSI and wait for completion
+    Write-Info "Installing Chocolatey..."
+    try {
+        Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$MsiFile`" /quiet /norestart /log `"$InstallLog`"" -Wait
+        Write-Success "Chocolatey MSI installation initiated"
+    } catch {
+        Write-ErrorMessage "Failed to install Chocolatey: $_"
+        exit 1
+    }
+
+    # Verify Chocolatey installation
+    $chocoPath = Get-Command choco -ErrorAction SilentlyContinue
+    if ($chocoPath) {
+        Write-Success "Chocolatey installed successfully at $($chocoPath.Source)"
     } else {
-        Write-Host "Warning: CockroachDB SQL shell is installed but version check failed."
+        Write-ErrorMessage "Chocolatey installation failed. Check $InstallLog for details."
+        exit 1
     }
-} catch {
-    Write-Host "Error: CockroachDB SQL shell not found in PATH or failed to execute."
+}
+
+# Step 2: Install CockroachDB using Chocolatey
+Write-Header "Installing CockroachDB"
+$cockroachPath = Get-Command cockroach -ErrorAction SilentlyContinue
+if ($cockroachPath) {
+    Write-Success "CockroachDB is already installed at $($cockroachPath.Source)"
+} else {
+    Write-Info "Installing CockroachDB via Chocolatey..."
+    try {
+        $output = choco install cockroachdb -y --no-progress | Out-String
+        Write-Host $output -ForegroundColor White
+        Write-Success "CockroachDB installed successfully"
+        
+        # Verify CockroachDB installation
+        $cockroachPath = Get-Command cockroach -ErrorAction SilentlyContinue
+        if ($cockroachPath) {
+            $version = cockroach version
+            Write-Success "CockroachDB version check: $version"
+        } else {
+            Write-ErrorMessage "CockroachDB installation failed or not found in PATH."
+            exit 1
+        }
+    } catch {
+        Write-ErrorMessage "Failed to install CockroachDB: $_"
+        exit 1
+    }
+}
+
+# Step 3: Check for Node.js and npm, install if missing
+Write-Header "Checking for Node.js and npm"
+$nodePath = Get-Command node -ErrorAction SilentlyContinue
+$npmPath = Get-Command npm -ErrorAction SilentlyContinue
+
+if ($nodePath -and $npmPath) {
+    $nodeVersion = node -v
+    $npmVersion = npm -v
+    Write-Success "Node.js ($nodeVersion) and npm ($npmVersion) are installed"
+} else {
+    Write-Info "Node.js or npm not found. Installing via Chocolatey..."
+    try {
+        $output = choco install nodejs -y --no-progress | Out-String
+        Write-Host $output -ForegroundColor White
+        Write-Success "Node.js and npm installed successfully"
+        
+        # Verify Node.js and npm installation
+        $nodePath = Get-Command node -ErrorAction SilentlyContinue
+        $npmPath = Get-Command npm -ErrorAction SilentlyContinue
+        if ($nodePath -and $npmPath) {
+            $nodeVersion = node -v
+            $npmVersion = npm -v
+            Write-Success "Node.js ($nodeVersion) and npm ($npmVersion) verified"
+        } else {
+            Write-ErrorMessage "Node.js or npm installation failed or not found in PATH."
+            exit 1
+        }
+    } catch {
+        Write-ErrorMessage "Failed to install Node.js: $_"
+        exit 1
+    }
+}
+
+# Step 4: Initialize npm project if Node.js and npm are installed
+Write-Header "Initializing npm Project"
+if ($nodePath -and $npmPath) {
+    Write-Info "Running npm install --force..."
+    try {
+        $output = npm install --force | Out-String
+        Write-Host $output -ForegroundColor White
+        Write-Success "npm install completed successfully"
+    } catch {
+        Write-ErrorMessage "Failed to run npm install: $_"
+        exit 1
+    }
+} else {
+    Write-ErrorMessage "Cannot run npm install because Node.js or npm is not installed."
     exit 1
 }
 
-# Step 4: Check for Node.js and npm
-Write-Host "Checking for Node.js and npm..."
-$nodeInstalled = $false
-$npmInstalled = $false
-
-try {
-    $nodeVersion = & node --version
-    if ($nodeVersion) {
-        Write-Host "Node.js is installed: $nodeVersion"
-        $nodeInstalled = $true
-    }
-} catch {
-    Write-Host "Node.js is not installed."
-}
-
-try {
-    $npmVersion = & npm --version
-    if ($npmVersion) {
-        Write-Host "npm is installed: $npmVersion"
-        $npmInstalled = $true
-    }
-} catch {
-    Write-Host "npm is not installed."
-}
-
-# Step 5: Provide feedback for npm project initialization
-if ($nodeInstalled -and $npmInstalled) {
-    Write-Host "Success: Both Node.js and npm are installed. You can now initialize a project with 'npm install --force' in your project directory."
-} else {
-    Write-Host "Cannot proceed with npm project initialization. Please install Node.js and npm."
-}
-
-Write-Host "Script completed."
-Pause
+# Final Success Message
+Write-Header "Installation Complete"
+Write-Success "All components (Chocolatey, CockroachDB, Node.js, npm) installed and verified successfully!"
+Write-Host "You can now start using CockroachDB and your npm project." -ForegroundColor Cyan
+Write-Host "`nPress any key to exit..." -ForegroundColor Yellow
+$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
