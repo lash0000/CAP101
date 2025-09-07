@@ -1,37 +1,16 @@
-## Project Creation
-
-```term
-Welcome to Serverless Framework V.4
-
-Create a new project by selecting a Template to generate scaffolding for a specific use-case.
-
-✔ Select A Template: · AWS / Node.js / Express API
-✔ Name Your Project: · cap101
-
-====================================================================
-
-✔ Name Your New App: · cap101
-
-Your new Service "cap101" is ready. Here are next steps:
-
-• Open Service Directory: cd cap101
-• Install Dependencies: npm install (or use another package manager)
-• Deploy Your Service: serverless deploy
-```
-
-## Details
-This is Serverless Framework App based that empowers Express up to production scale.
+## Preface
+This is Node.js Serverless Framework App based that empowers Express.js way.
 
 ## Installation
 > [!NOTE]
-> During installation, just ignore errors from mismanaged versions from `serverless-dotenv-plugin` and `serverless-offline` if you need to add more dependencies just do `npm install <pkgname> --force`.
+> During installation, just ignore warning errors from mismanaged versions of `serverless-dotenv-plugin` and `serverless-offline` if you need to add more libraries just do `npm install <pkgname> --force`.
 
 ```term
 npm install --force
 ```
 
 ## Usage
-This will load all serverless plugin installed. 
+This project is expecting you to use Jest (for unit test) and your API builder (actual) so this command willload all serverless plugins installed. 
 
 ```term
 npm start
