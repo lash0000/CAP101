@@ -37,12 +37,12 @@ if ($chocoPath) {
     Write-Info "Chocolatey not found. Installing Chocolatey..."
 
     # Define variables for Chocolatey installation
-    $MsiUrl = "https://github.com/chocolatey/choco/releases/download/2.5.1/chocolatey-2.5.1.msi"
-    $MsiFile = "$env:TEMP\chocolatey-2.5.1.msi"
+    $MsiUrl = "https://github.com/chocolatey/choco/releases/download/2.5.1/chocolatey-2.5.1.0.msi"
+    $MsiFile = "$env:TEMP\chocolatey-2.5.1.0.msi"
     $InstallLog = "$env:TEMP\chocolatey-install.log"
 
     # Download Chocolatey MSI
-    Write-Info "Downloading Chocolatey Package Manager from $MsiUrl..."
+    Write-Info "Downloading Chocolatey MSI from $MsiUrl..."
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         $ProgressPreference = 'SilentlyContinue'
@@ -62,6 +62,9 @@ if ($chocoPath) {
         Write-ErrorMessage "Failed to install Chocolatey: $_"
         exit 1
     }
+
+    # Refresh environment variables to include Chocolatey
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
     # Verify Chocolatey installation
     $chocoPath = Get-Command choco -ErrorAction SilentlyContinue
