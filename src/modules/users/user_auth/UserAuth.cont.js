@@ -2,61 +2,25 @@ const { sendEmail } = require('../../../services/nodemailer');
 const UserAuth = require('./UserAuth.model');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
 
 class UserAuthController {
   constructor() {
-    this.requestOTP = this.requestOTP.bind(this);
-    this.verifyOTP = this.verifyOTP.bind(this);
+    this.generateOTP = this.generate_OTP.bind(this);
+    this.verifyOTP = this.verify_OTP.bind(this);
     this.createUserAuth = this.createUserAuth.bind(this);
   }
 
-  async requestOTP(req, res) {
+  async generate_OTP(req, res) {
     try {
-      /* Debugging issues with buffer :/
-      console.log('=== DEBUG: requestOTP called ===');
-      console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-      console.log('Raw request body:', req.body);
-      console.log('Type of req.body:', typeof req.body);
-     */
-      let body;
-      if (Buffer.isBuffer(req.body)) {
-        console.log('Body is a Buffer, converting to string...');
-        try {
-          const bodyString = req.body.toString('utf8');
-          console.log('Body as string:', bodyString);
-          body = JSON.parse(bodyString);
-          console.log('Parsed body from Buffer:', body);
-        } catch (parseError) {
-          console.log('Failed to parse Buffer body:', parseError);
-          return res.status(400).json({ error: 'Invalid JSON format' });
-        }
-      } else if (typeof req.body === 'string') {
-        try {
-          body = JSON.parse(req.body);
-          console.log('Parsed string body:', body);
-        } catch (parseError) {
-          console.log('Failed to parse string body:', parseError);
-          return res.status(400).json({ error: 'Invalid JSON format' });
-        }
-      } else if (req.body && typeof req.body === 'object') {
-        body = req.body;
-        console.log('Object body:', body);
-      } else {
-        console.log('Unknown body type');
-        return res.status(400).json({ error: 'Invalid request body' });
-      }
-
-      const { email } = body;
+      const { email } = req.body;
 
       if (!email) {
-        console.log('Email is missing from body');
-        console.log('Full body received:', body);
         return res.status(400).json({ error: 'Email is required' });
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        console.log('Invalid email format:', email);
         return res.status(400).json({ error: 'Invalid email format' });
       }
 
@@ -70,13 +34,12 @@ class UserAuthController {
 
       await sendEmail({
         to: email,
-        subject: 'OTP for Registration - Barangay Sta. Monica\'s of Quezon City Portal',
+        subject: 'OTP Code for Registration - Barangay Sta. Monica\'s of Quezon City Portal',
         html: `<div class="content">${customContent}</div>`,
       });
 
-      console.log('OTP sent to:', email);
-      res.status(200).json({
-        message: 'OTP sent to your email. It will expire in 5 minutes.',
+      res.status(201).json({
+        message: 'OTP code sent to your email. It will expire in 5 minutes.',
         success: true
       });
     } catch (error) {
@@ -88,68 +51,67 @@ class UserAuthController {
     }
   }
 
-  async verifyOTP(req, res) {
+  async verify_OTP(req, res) {
     try {
-      let body;
-      if (Buffer.isBuffer(req.body)) {
-        try {
-          const bodyString = req.body.toString('utf8');
-
-          // Check if the string is valid JSON
-          body = JSON.parse(bodyString);
-          console.log('Parsed body:', body);
-        } catch (parseError) {
-          console.log('Failed to parse Buffer body:', parseError.message);
-          console.log('Error stack:', parseError.stack);
-          return res.status(400).json({ error: 'Invalid JSON format', details: parseError.message });
-        }
-      } else if (typeof req.body === 'string') {
-        try {
-          console.log('Body is string:', req.body);
-          body = JSON.parse(req.body);
-          console.log('Parsed string body:', body);
-        } catch (parseError) {
-          console.log('Failed to parse string body:', parseError.message);
-          return res.status(400).json({ error: 'Invalid JSON format', details: parseError.message });
-        }
-      } else if (req.body && typeof req.body === 'object') {
-        body = req.body;
-        console.log('Object body:', body);
-      } else {
-        console.log('Unknown body type:', typeof req.body);
-        return res.status(400).json({ error: 'Invalid request body' });
+      // Validate request body exists
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          error: 'OTP code is required',
+          message: 'Please check your provided email.'
+        });
       }
 
-      const { email, otp } = body;
+      const { email, otp } = req.body;
 
+      // Validate required fields
       if (!email || !otp) {
-        return res.status(400).json({ error: 'There is missing field meaning Email and OTP are required' });
+        return res.status(400).json({
+          error: 'Email and OTP are required',
+          message: 'Please ensure all fields provided are correct.',
+          success: false
+        });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          error: 'Invalid email format',
+          success: false
+        });
       }
 
       const redisClient = req.app.locals.redisClient;
-
-      // Ensure Redis client is connected
-      if (!redisClient.isOpen) {
-        console.log('Connecting to Redis...');
-        await redisClient.connect();
-      }
+      if (!redisClient.isOpen) await redisClient.connect();
 
       const storedOtp = await redisClient.get(`otp:${email}`);
       if (!storedOtp || storedOtp !== otp) {
-        console.log('OTP mismatch or expired');
-        return res.status(400).json({ error: 'Invalid or expired OTP' });
+        return res.status(400).json({
+          error: 'Invalid or expired OTP',
+          success: false
+        });
       }
 
-      // Generate API key upon successful OTP
-      const apiKey = crypto.randomBytes(32).toString('hex');
-      console.log('Generated API key:', apiKey);
+      // Ensure JWT secret exists
+      if (!process.env.JWT_SECRET) {
+        console.error('JWT_SECRET is not defined in environment variables');
+        return res.status(500).json({
+          error: 'Server configuration error',
+          success: false
+        });
+      }
 
-      // Store API key in Redis with 45-minute expiration
-      await redisClient.setEx(`apiKey:${apiKey}`, 45 * 60, email);
+      const jwtToken = jwt.sign(
+        {
+          email: email,
+          purpose: 'registration'
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: '45m' }
+      );
 
-      // Delete OTP after successful use
       await redisClient.del(`otp:${email}`);
-      console.log('OTP deleted from Redis');
+
       const customContent = `<p>Your OTP was successfully verified. Please proceed to next process to complete registration.</p>`;
 
       await sendEmail({
@@ -159,135 +121,109 @@ class UserAuthController {
       });
 
       res.status(200).json({
-        message: 'OTP verified successfully',
-        apiKey,
+        message: 'OTP code verified and your provided email was saved successfully. Proceed to your registration.',
+        token: jwtToken,
         success: true
       });
     } catch (error) {
-      console.error('Error in verifyOTP:', error);
-      console.error('Error stack:', error.stack);
+      console.error('Error in verifying OTP:', error);
       return res.status(500).json({
         error: 'Internal server error',
-        details: error.message
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        success: false
       });
     }
   }
 
+
+  // This is intended for registration too (direct system)
   async createUserAuth(req, res) {
     try {
-      console.log('=== DEBUG: createUserAuth called ===');
-      console.log('Request headers:', JSON.stringify(req.headers, null, 2));
-      console.log('Request body:', req.body);
-      console.log('Is Buffer:', Buffer.isBuffer(req.body));
-
-      const authHeader = req.headers['authorization'];
-      const apiKey = authHeader && authHeader.split(' ')[1];
-      console.log('API Key from header:', apiKey);
-
-      if (!apiKey) {
-        console.log('API Key is missing from header');
-        return res.status(401).json({ error: 'API Key is required' });
-      }
-
-      let body;
-      if (Buffer.isBuffer(req.body)) {
-        try {
-          const bodyString = req.body.toString('utf8');
-          console.log('Body as string:', bodyString);
-          body = JSON.parse(bodyString);
-          console.log('Parsed body:', body);
-        } catch (parseError) {
-          console.log('Failed to parse Buffer body:', parseError.message);
-          return res.status(400).json({ error: 'Invalid JSON format', details: parseError.message });
-        }
-      } else if (typeof req.body === 'string') {
-        try {
-          console.log('Body is string:', req.body);
-          body = JSON.parse(req.body);
-          console.log('Parsed string body:', body);
-        } catch (parseError) {
-          console.log('Failed to parse string body:', parseError.message);
-          return res.status(400).json({ error: 'Invalid JSON format', details: parseError.message });
-        }
-      } else if (req.body && typeof req.body === 'object') {
-        body = req.body;
-        console.log('Object body:', body);
-      } else {
-        console.log('Unknown body type:', typeof req.body);
-        return res.status(400).json({ error: 'Invalid request body' });
-      }
-
-      const { username, password } = body;
-      console.log('Extracted username:', username);
-      console.log('Extracted password:', password ? '***' : 'undefined');
-
-      if (!username || !password) {
-        return res.status(400).json({
-          error: 'Username and password are required',
-          received: { username: !!username, password: !!password }
+      // Check if email is attached by auth middleware
+      if (!req.email) {
+        return res.status(401).json({
+          error: 'Authentication required. Please provide a valid token.',
+          success: false
         });
       }
 
-      const redisClient = req.app.locals.redisClient;
+      const { email } = req;
 
-      // Ensure Redis client is connected
-      if (!redisClient.isOpen) {
-        console.log('Connecting to Redis...');
-        await redisClient.connect();
+      // Validate request body exists
+      if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({
+          error: 'Request body is required',
+          success: false
+        });
       }
 
-      console.log('Checking API key in Redis:', apiKey);
-      const email = await redisClient.get(`apiKey:${apiKey}`);
-      console.log('Email from Redis:', email);
+      const { username, password } = req.body;
 
-      if (!email) {
-        console.log('Invalid or expired API Key');
-        return res.status(401).json({ error: 'Invalid or expired API Key' });
+      // Validate required fields with detailed messages
+      const missingFields = [];
+      if (!username) missingFields.push('username');
+      if (!password) missingFields.push('password');
+
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          error: `Missing required fields: ${missingFields.join(', ')}`,
+          success: false
+        });
       }
 
-      console.log('Checking if user already exists with email:', email);
-      const existingUser = await UserAuth.findOne({ where: { email } });
-      if (existingUser) {
-        console.log('User already exists:', existingUser.username);
-        return res.status(409).json({ error: 'User already exists with this email' });
+      // Additional validation
+      if (username.length < 3) {
+        return res.status(400).json({
+          error: 'Username must be at least 3 characters long',
+          success: false
+        });
       }
 
-      // Generate UUID for user_id
+      if (password.length < 6) {
+        return res.status(400).json({
+          error: 'Password must be at least 6 characters long',
+          success: false
+        });
+      }
+
+      // Check for existing users
+      const existingUserByEmail = await UserAuth.findOne({ where: { email } });
+      if (existingUserByEmail) {
+        return res.status(409).json({
+          error: 'User already exists with this email address',
+          success: false
+        });
+      }
+
+      const existingUserByUsername = await UserAuth.findOne({ where: { username } });
+      if (existingUserByUsername) {
+        return res.status(409).json({
+          error: 'Username is already taken. Please choose a different username.',
+          success: false
+        });
+      }
+
       const userId = uuidv4();
-      console.log('Generated user_id:', userId);
-
-      // Hash password
       const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
-      console.log('Password hashed successfully');
 
-      console.log('Creating user in database...');
       const user = await UserAuth.create({
-        user_id: userId, // Use the generated UUID here
+        user_id: userId,
         username,
         email,
         password: hashedPassword,
         account_type: 'system'
       });
 
-      console.log('User created successfully:', user.username);
-
-      // Delete API key after successful registration
-      await redisClient.del(`apiKey:${apiKey}`);
-      console.log('API key deleted from Redis');
-
-      // Send welcoming email for new user
       const customContent = `
-      <p>Maligayang Araw, ${username}! Your registration with Sta. Monica's Portal was successful. 
-      We're excited to have you join our community. Explore essential features para sa ating online transactions!</p>
-    `;
+    <p>Maligayang Araw, ${username}! Your registration with Sta. Monica's Portal was successful. 
+    We're excited to have you join our community. Explore essential features para sa ating online transactions!</p>
+  `;
 
       await sendEmail({
         to: email,
-        subject: 'Welcome to Sta. Monica\'s of Quezon City Portal',
+        subject: 'Welcome to Barangay Sta. Monica\'s of Quezon City Portal',
         html: `<div class="content">${customContent}</div>`,
       });
-
-      console.log('Welcome email sent to:', email);
 
       res.status(201).json({
         message: 'User registered successfully',
@@ -299,12 +235,13 @@ class UserAuthController {
         },
         success: true
       });
+
     } catch (error) {
       console.error('Error in createUserAuth:', error);
-      console.error('Error stack:', error.stack);
       return res.status(500).json({
         error: 'Internal server error',
-        details: error.message
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        success: false
       });
     }
   }
@@ -348,7 +285,7 @@ module.exports = new UserAuthController();
 // 6. Once clicked Resend a 60 second countdown will show.
 // TODO: Verify account
 // 1. Verify Email address
-// TODO: Generate OTP
+// TODO: Generate OTP (per login or 30 days)
 // 1. User must recieved an access token 
 // 2. Validate access token if legit if yes generate an OTP. 
 // 3. If no, return an error

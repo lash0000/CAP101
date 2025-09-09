@@ -1,5 +1,5 @@
-const { sendEmail } = require('../../services/nodemailer');
-const EmailTemplate = require('../../services/emailTemplates');
+const { sendEmail } = require("../../services/nodemailer");
+const emailTemplate = require("../../services/email.template");
 
 class EmailDebugController {
   constructor() {
@@ -8,44 +8,57 @@ class EmailDebugController {
 
   async testEmail(req, res) {
     try {
-      const { email } = req.body;
+      const { email, firstName } = req.body;
 
+      // Validate request
       if (!email) {
-        return res.status(400).json({ error: 'Email is required' });
+        return res.status(400).json({ error: "Email is required" });
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        return res.status(400).json({ error: 'Invalid email format' });
+        return res.status(400).json({ error: "Invalid email format" });
       }
 
-      // Customize the email template configuration
-      EmailTemplate.updateConfig({
-        title: 'Email Debugging - Barangay Sta. Monica of Quezon City',
-        header: 'Test Email',
-        body: 'Hi, this is only test email (Test email debugging...)\nThis is a new line.',
-        button: false,
-        footer: 'If you have issues, please let us know.\nBest,\n~ Barangay Sta. Monica Team'
+      // derive a fallback name if not provided
+      const headerName = firstName && firstName.trim()
+        ? firstName.trim()
+        : (email.split("@")[0] || "User");
+
+      // Update template locals (these will be available in welcome/html.pug)
+      emailTemplate.updateConfig({
+        title: "Welcome Email — Barangay Sta. Monica",
+        header: headerName,
+        body: `Hello ${headerName},\n\nThanks for signing up! We’re excited to have you onboard. This is a test email for debugging purposes.`,
+        button: { text: "Get Started", href: "https://example.com/start" }, // set to false if you don't want a button
+        footer: "Best regards,\nBarangay Sta. Monica Team",
       });
 
-      // Get the rendered HTML
-      const emailContent = EmailTemplate.getHTML();
+      // Render subject + HTML from template
+      const subject = await emailTemplate.getSubject("welcome");
+      const html = await emailTemplate.getHTML("welcome");
 
-      await sendEmail({
+      // Send email using your sendEmail helper
+      const info = await sendEmail({
         to: email,
-        subject: EmailTemplate.config.title,
-        html: emailContent,
+        subject,
+        html,
       });
 
-      res.status(201).json({
-        message: 'Email provided was sent.',
-        success: true
+      return res.status(201).json({
+        message: "Email provided was sent.",
+        success: true,
+        to: email,
+        subject,
+        body: {
+          html,
+        },
       });
-
     } catch (error) {
+      console.error("Error sending welcome email:", error);
       return res.status(500).json({
-        error: 'Internal server error',
-        details: error.message
+        error: "Internal server error",
+        details: error.message,
       });
     }
   }
