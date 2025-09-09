@@ -1,28 +1,42 @@
 const { Router } = require('express');
 const userAuthController = require('../modules/users/user_auth/UserAuth.cont');
+const EmailDebugController = require('../modules/email_debug/email_post');
+const jwt = require('jsonwebtoken');
 
-const authApiKey = async (req, res, next) => {
+// Auth method for API protected route per POST / PUT requests that will expire easily.
+const authJWT = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
-  const apiKey = authHeader && authHeader.split(' ')[1]; // Expect "Bearer <apiKey>"
+  const token = authHeader && authHeader.split(' ')[1]; // Expect "Bearer <jwtToken>"
 
-  if (!apiKey) {
-    return res.status(401).json({ error: 'API Key is required' });
+  if (!token) {
+    return res.status(401).json({ error: 'Access token is required' });
   }
-  const redisClient = req.app.locals.redisClient;
 
   try {
-    const storedEmail = await redisClient.get(`apiKey:${apiKey}`);
-    if (!storedEmail) {
-      return res.status(401).json({ error: 'Invalid API Key' });
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    // Additional validation for registration purpose
+    if (decoded.purpose !== 'registration') {
+      return res.status(401).json({ error: 'Invalid token purpose' });
     }
-    req.apiKey = apiKey;
-    req.email = storedEmail;
+
+    // Attach user data to request
+    req.email = decoded.email;
+    req.tokenData = decoded;
     next();
   } catch (error) {
-    console.error('Redis Error in authApiKey:', error);
+    console.error('JWT verification error:', error);
+
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Unauthorized - Invalid or already expired token.' });
+    }
+
     return res.status(500).json({ error: 'Internal server error' });
   }
-}
+};
 
 class Routes {
   constructor() {
@@ -32,10 +46,10 @@ class Routes {
 
   initRoutes() {
     // Mount all routes here (in future)
-    this.router.post('/generate-otp', userAuthController.requestOTP);
-    this.router.post('/verify-otp', userAuthController.verifyOTP);
-    this.router.post('/user-auth', authApiKey, userAuthController.createUserAuth);
-
+    this.router.post('/generate-otp', userAuthController.generateOTP);
+    this.router.post('/verify-otp', userAuthController.verify_OTP);
+    this.router.post('/user-auth', authJWT, userAuthController.createUserAuth);
+    this.router.post('/test-email', EmailDebugController.testEmail);
   }
 
   getRouter() {
