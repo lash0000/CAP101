@@ -17,6 +17,9 @@ provider:
     POSTGRE_DB_NAME: ${env:POSTGRE_DB_NAME}
     POSTGRE_DB_USER: ${env:POSTGRE_DB_USER}
     POSTGRE_DB_PWD: ${env:POSTGRE_DB_PWD}
+    REDIS_URL: ${env:REDIS_URL}
+    SMTP_SERVICE: ${env:SMTP_SERVICE}
+    SMTP_APP: ${env:SMTP_APP}
   httpApi:
     cors:
       allowedOrigins:
@@ -49,3 +52,12 @@ functions:
       - httpApi:
           path: /{proxy+}
           method: get
+      - httpApi:
+          path: /{proxy+}
+          method: post
+      - httpApi:
+          path: /{proxy+}
+          method: put
+      - httpApi:
+          path: /{proxy+}
+          method: delete
