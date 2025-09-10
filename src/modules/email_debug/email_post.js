@@ -38,13 +38,6 @@ class EmailDebugController {
       const subject = await emailTemplate.getSubject("welcome");
       const html = await emailTemplate.getHTML("welcome");
 
-      // Send email using your sendEmail helper
-      const info = await sendEmail({
-        to: email,
-        subject,
-        html,
-      });
-
       return res.status(201).json({
         message: "Email provided was sent.",
         success: true,

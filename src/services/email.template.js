@@ -28,14 +28,23 @@ class EmailTemplate {
   updateConfig(newConfig) {
     this.config.locals = { ...this.config.locals, ...newConfig };
   }
-
-  // Render HTML (html.pug)
   async getHTML(templateName) {
     return this.email.render(`${templateName}/html`, this.config.locals);
   }
-
+  async getText(templateName) {
+    return this.email.render(`${templateName}/text`, this.config.locals);
+  }
   async getSubject(templateName) {
     return this.email.render(`${templateName}/subject`, this.config.locals);
+  }
+  async renderAll(templateName, config) {
+    this.updateConfig(config);
+    const [html, text, subject] = await Promise.all([
+      this.getHTML(templateName),
+      this.getText(templateName),
+      this.getSubject(templateName),
+    ]);
+    return { html, text, subject };
   }
 }
 
