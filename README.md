@@ -13,7 +13,8 @@ npm install --force
 ```
 
 ## Usage
-This project is expecting you to use Jest (for unit test) and your API builder (actual) so this command willload all serverless plugins installed. 
+This project is expecting you to use Jest (for unit test) and your API builder (actual) so this command 
+will load all serverless plugins installed. 
 
 ```term
 npm start
