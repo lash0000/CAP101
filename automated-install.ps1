@@ -73,6 +73,27 @@ function Write-Success { param($Message) ; Write-Host "[SUCCESS] $Message" -Fore
 function Write-ErrorMessage { param($Message) ; Write-Host "[ERROR] $Message" -ForegroundColor Red }
 function Write-Info { param($Message) ; Write-Host "[INFO] $Message" -ForegroundColor Magenta }
 
+# -------------------- Node.js ---------------------
+
+Write-Header "Checking Node.js (for Chocolatey)"
+$nodePath = Get-Command node -ErrorAction SilentlyContinue
+$npmPath = Get-Command npm -ErrorAction SilentlyContinue
+$skipNodeInstall = $false
+
+if ($nodePath -and $npmPath) {
+    $nodeVersion = & node -v
+    $npmVersion = & npm -v
+    if ($nodeVersion -like "v22*") {
+        Write-Success "It seems you already have Node.js ($nodeVersion) and npm ($npmVersion), skipping..."
+        $skipNodeInstall = $true
+    } else {
+        Write-Warning "Node.js version ($nodeVersion) detected, but this script requires v22.x (LTS)."
+        Write-Info "Will attempt to install Node.js v22 later via Chocolatey."
+    }
+} else {
+    Write-Info "Node.js or npm not found. Will attempt to install Node.js v22 later via Chocolatey."
+}
+
 # -------------------- Chocolatey --------------------
 
 Write-Header "Checking Chocolatey"
@@ -503,6 +524,7 @@ Write-Host "CockroachDB installed at C:\cockroach and added to PATH." -Foregroun
 Write-Host "Redis server directory locates at C:\Redis" -ForegroundColor Cyan
 Write-Host "Chocolatey bin directory (C:\ProgramData\chocolatey\bin) added to PATH." -ForegroundColor Cyan
 Write-Host "Run 'npm install -g pnpm' for intensive development experience workflow." -ForegroundColor Cyan
+Write-Host "Run 'npm install -g serverless' as part of usage for serverless commands." -ForegroundColor Cyan
 Write-Host "Run 'npm install --force' inside CAP101 project to install dependencies." -ForegroundColor Yellow
 Write-Info "For Redis Server usage:"
 Write-Host " → See: https://github.com/redis-windows/redis-windows?tab=readme-ov-file#service-installation" -ForegroundColor Yellow
