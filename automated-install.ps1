@@ -19,6 +19,23 @@ if (-not $IsAdmin) {
     exit 1
 }
 
+function Get-CPUArchitecture {
+    $architecture = $env:PROCESSOR_ARCHITECTURE
+    $archW6432 = $env:PROCESSOR_ARCHITEW6432
+    
+    if ($archW6432 -eq "ARM64") {
+        return "ARM64"
+    } elseif ($architecture -eq "ARM64") {
+        return "ARM64"
+    } elseif ($architecture -eq "AMD64" -or $archW6432 -eq "AMD64") {
+        return "AMD64"
+    } elseif ($architecture -eq "x86") {
+        return "x86"
+    } else {
+        return "AMD64" # Default to AMD64 if detection fails
+    }
+}
+
 # -------------------- Intro --------------------
 
 Write-Host "=====================================" -ForegroundColor Cyan
@@ -39,6 +56,8 @@ Write-Host "If the automated script may not help with what you've encountered pr
 Write-Host " > CockroachDB: https://www.cockroachlabs.com/docs/stable/install-cockroachdb-windows.html" -ForegroundColor Cyan
 Write-Host " > Node.js LTS: https://community.chocolatey.org/packages/nodejs-lts" -ForegroundColor Cyan
 Write-Host "=====================================" -ForegroundColor Cyan
+$CPUArch = Get-CPUArchitecture
+Write-Host "[INFO] Detected CPU Architecture: $CPUArch" -ForegroundColor Cyan
 Write-Host ""
 Start-Sleep -Seconds 2
 
@@ -209,6 +228,231 @@ if ($cockroachPath) {
     }
 }
 
+# -------------------- MSYS2 -------------------
+
+Write-Header "Installing MSYS2"
+
+$MSYS2InstallPath = "C:\msys64"
+$MSYS2ExePath = Join-Path $MSYS2InstallPath "usr\bin\bash.exe"
+
+# Check if MSYS2 is already installed
+if (Test-Path $MSYS2ExePath) {
+    Write-Success "MSYS2 already installed at $MSYS2InstallPath"
+    
+    # Check if it's in system PATH
+    $systemPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $MSYS2BinPath = Join-Path $MSYS2InstallPath "usr\bin"
+    
+    if ($systemPath -notlike "*$MSYS2BinPath*") {
+        try {
+            [System.Environment]::SetEnvironmentVariable("Path", "$systemPath;$MSYS2BinPath", "Machine")
+            Write-Success "Added MSYS2 to system PATH"
+        } catch {
+            Write-Warning "Could not add MSYS2 to system PATH (admin rights needed): $_"
+            Write-Host " → Please manually add '$MSYS2BinPath' to your system PATH" -ForegroundColor Yellow
+        }
+    } else {
+        Write-Info "MSYS2 already in system PATH environment"
+    }
+    
+} else {
+    Write-Info "MSYS2 not found. Installing via executable..."
+
+    if (-not (Test-Path $DownloadsPath)) {
+        New-Item -ItemType Directory -Path $DownloadsPath -Force | Out-Null
+        Write-Info "Created Downloads directory: $DownloadsPath"
+    }
+    
+    switch ($CPUArch) {
+        "ARM64" {
+            $Msys2Url = "https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-arm64-20250830.exe"
+            Write-Info "Downloading MSYS2 ARM64 version"
+        }
+        "AMD64" {
+            $Msys2Url = "https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-x86_64-20250830.exe"
+            Write-Info "Downloading MSYS2 x86_64 (64-bit) version"
+        }
+        default {
+            $Msys2Url = "https://github.com/msys2/msys2-installer/releases/download/2025-08-30/msys2-x86_64-20250830.exe"
+            Write-Info "MSYS2 doesn't provide 32-bit installer, downloading x86_64 version instead"
+        }
+    }
+
+    $Msys2File = Join-Path $DownloadsPath "msys2-installer.exe"
+
+    try {
+        Write-Info "Downloading MSYS2 installer to $DownloadsPath..."
+        curl.exe -L $Msys2Url -o $Msys2File
+        if (Test-Path $Msys2File) {
+            Write-Success "MSYS2 Installer downloaded to $Msys2File"
+        } else {
+            throw "Download failed - file not found at $Msys2File"
+        }
+    } catch {
+        Write-ErrorMessage "Failed to download MSYS2 installer: $_"
+        exit 1
+    }
+
+    Write-Info "Launching MSYS2 installer with silent installation..."
+    Write-Host "`n=====================================" -ForegroundColor Yellow
+    Write-Host "MSYS2 INSTALLATION" -ForegroundColor Yellow
+    Write-Host "=====================================" -ForegroundColor Yellow
+    Write-Host "MSYS2 is being installed silently to C:\msys64" -ForegroundColor White
+    Write-Host "Please wait while the installation completes..." -ForegroundColor Cyan
+    Write-Host "=====================================" -ForegroundColor Yellow
+
+    try {
+        # Start the MSYS2 installer with silent flags
+        $process = Start-Process -FilePath $Msys2File -ArgumentList "--quiet" -PassThru -Wait
+        
+        Write-Success "MSYS2 silent installation process completed."
+        
+        # Verify installation
+        if (Test-Path $MSYS2ExePath) {
+            Write-Success "MSYS2 successfully installed at $MSYS2InstallPath"
+            
+            # Add MSYS2 to system PATH
+            $systemPath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+            $MSYS2BinPath = Join-Path $MSYS2InstallPath "usr\bin"
+            
+            if ($systemPath -notlike "*$MSYS2BinPath*") {
+                try {
+                    [System.Environment]::SetEnvironmentVariable("Path", "$systemPath;$MSYS2BinPath", "Machine")
+                    Write-Success "Added MSYS2 to system PATH"
+                } catch {
+                    Write-Warning "Could not add MSYS2 to system PATH: $_"
+                    Write-Host " → Please manually add '$MSYS2BinPath' to your system PATH" -ForegroundColor Yellow
+                }
+            }
+        } else {
+            Write-ErrorMessage "MSYS2 installation failed - executable not found at expected location"
+            Write-Host " → Please check if MSYS2 was installed correctly" -ForegroundColor Yellow
+            exit 1
+        }
+        
+        Write-Info "Proceeding with next installations..."
+    } catch {
+        Write-ErrorMessage "Failed to start MSYS2 installer: $_"
+        exit 1
+    }
+}
+
+Write-Info "MSYS2 installation process completed."
+
+# -------------------- Redis Server -------------------
+
+Write-Header "Installing Redis Server"
+
+$RedisInstallDir = "C:\Redis"
+$RedisServiceExePath = Join-Path $RedisInstallDir "RedisService.exe"
+
+# Check if Redis is already installed
+if (Test-Path $RedisServiceExePath) {
+    Write-Success "Redis Server already installed at $RedisInstallDir"
+    
+    # Check if Redis service is installed
+    $service = Get-Service -Name "Redis" -ErrorAction SilentlyContinue
+    if ($service) {
+        Write-Info "Redis service already installed Status: $($service.Status)"
+    } else {
+        Write-Info "Redis service not installed. To install service run:"
+        Write-Host "sc.exe create Redis binpath=`"$RedisServiceExePath`" start= auto" -ForegroundColor Cyan
+    }
+    
+} else {
+    Write-Info "Redis Server not found. Installing..."
+
+    if (-not (Test-Path $DownloadsPath)) {
+        New-Item -ItemType Directory -Path $DownloadsPath -Force | Out-Null
+        Write-Info "Created Downloads directory: $DownloadsPath"
+    }
+
+    $RedisUrl = "https://github.com/redis-windows/redis-windows/releases/download/8.2.1/Redis-8.2.1-Windows-x64-msys2-with-Service.zip"
+    $RedisZipFile = Join-Path $DownloadsPath "redis-windows.zip"
+
+    try {
+        Write-Info "Downloading Redis Server..."
+        curl.exe -L $RedisUrl -o $RedisZipFile
+        if (Test-Path $RedisZipFile) {
+            Write-Success "Redis Server downloaded to $RedisZipFile"
+        } else {
+            throw "Download failed - file not found at $RedisZipFile"
+        }
+    } catch {
+        Write-ErrorMessage "Failed to download Redis Server: $_"
+        exit 1
+    }
+
+    try {
+        if (Test-Path $RedisInstallDir) { 
+            Remove-Item -Recurse -Force $RedisInstallDir 
+            Write-Info "Removed existing Redis directory"
+        }
+
+        # Create temporary directory for extraction
+        $TempExtractDir = Join-Path $DownloadsPath "redis_temp"
+        if (Test-Path $TempExtractDir) { Remove-Item -Recurse -Force $TempExtractDir }
+        New-Item -ItemType Directory -Path $TempExtractDir -Force | Out-Null
+        
+        # Extract ZIP file to temporary directory
+        Expand-Archive -Path $RedisZipFile -DestinationPath $TempExtractDir -Force
+        Write-Info "Redis Server extracted to temporary directory"
+
+        # Find the subdirectory that was created during extraction
+        $extractedSubDir = Get-ChildItem -Path $TempExtractDir -Directory | Where-Object { $_.Name -like "Redis*" } | Select-Object -First 1
+        
+        if (-not $extractedSubDir) {
+            throw "Redis subdirectory not found in extracted files"
+        }
+
+        # Create Redis directory and move all files from subdirectory
+        New-Item -ItemType Directory -Path $RedisInstallDir -Force | Out-Null
+        Move-Item -Path "$($extractedSubDir.FullName)\*" -Destination $RedisInstallDir -Force
+        Write-Success "Redis Server files moved to $RedisInstallDir"
+
+        # Clean up temporary directory
+        Remove-Item -Recurse -Force $TempExtractDir
+
+        # Verify RedisService.exe exists
+        if (Test-Path $RedisServiceExePath) {
+            Write-Success "Redis Server files extracted successfully"
+            
+            # Install Redis service
+            Write-Info "Installing Redis service..."
+            try {
+                $service = Get-Service -Name "Redis" -ErrorAction SilentlyContinue
+                if ($service) {
+                    Write-Info "Redis service already exists, removing old service..."
+                    sc.exe delete Redis 2>$null
+                }
+                
+                # Create new service
+                $serviceResult = sc.exe create Redis binpath=`"$RedisServiceExePath`" start= auto
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Success "Redis service installed successfully"
+                    Write-Info "Service will start automatically on system boot"
+                } else {
+                    Write-Warning "Could not install Redis service (admin rights needed)"
+                    Write-Host " → To install service manually, run as Administrator:" -ForegroundColor Yellow
+                    Write-Host "   sc.exe create Redis binpath=`"$RedisServiceExePath`" start= auto" -ForegroundColor Cyan
+                }
+            } catch {
+                Write-Warning "Failed to install Redis service: $_"
+                Write-Host " → Please install service manually as Administrator" -ForegroundColor Yellow
+            }
+        } else {
+            throw "RedisService.exe not found after extraction and moving files"
+        }
+        
+    } catch {
+        Write-ErrorMessage "Failed to extract or setup Redis Server: $_"
+        exit 1
+    }
+}
+
+
+Write-Info "Redis Server installation process completed."
+
 # -------------------- Node.js --------------------
 
 Write-Header "Checking Node.js"
@@ -254,9 +498,14 @@ if ($nodePath -and $npmPath) {
 # -------------------- Final Message --------------------
 
 Write-Header "Installation Complete we advise to restart your terminal now."
-Write-Success "All development tools such as Chocolatey, CockroachDB & Node.js was installed correctly."
+Write-Success "All development tools such as Chocolatey, CockroachDB, Redis Server & Node.js was installed correctly."
 Write-Host "CockroachDB installed at C:\cockroach and added to PATH." -ForegroundColor Cyan
+Write-Host "Redis server directory locates at C:\Redis" -ForegroundColor Cyan
 Write-Host "Chocolatey bin directory (C:\ProgramData\chocolatey\bin) added to PATH." -ForegroundColor Cyan
+Write-Host "Run 'npm install -g pnpm' for intensive development experience workflow." -ForegroundColor Cyan
 Write-Host "Run 'npm install --force' inside CAP101 project to install dependencies." -ForegroundColor Yellow
+Write-Info "For Redis Server usage:"
+Write-Host " → See: https://github.com/redis-windows/redis-windows?tab=readme-ov-file#service-installation" -ForegroundColor Yellow
+Write-Host " → Start service: net start Redis" -ForegroundColor Yellow
 Write-Host "`nPress any key to exit..." -ForegroundColor Yellow
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
