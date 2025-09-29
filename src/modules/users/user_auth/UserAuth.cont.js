@@ -29,9 +29,6 @@ class UserAuthController {
 
       const { html, text, subject } = await emailTemplate.renderAll('generate_otp', {
         otp,
-        title: "OTP Code for Registration",
-        header: "Barangay Sta. Monica's of Quezon City Portal",
-        body: `Your OTP code is: <strong>${otp}</strong>. It will expire in 5 minutes.`,
       });
 
       await sendEmail({
@@ -104,7 +101,6 @@ class UserAuthController {
       const { html, text, subject } = await emailTemplate.renderAll('verify_otp', {
         title: "OTP Verification Successful",
         header: "Barangay Sta. Monica's of Quezon City Portal",
-        body: "Your OTP was successfully verified. Please proceed to the next process to complete registration.",
       });
 
       await sendEmail({
