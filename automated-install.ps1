@@ -75,7 +75,7 @@ function Write-Info { param($Message) ; Write-Host "[INFO] $Message" -Foreground
 
 # -------------------- Node.js ---------------------
 
-Write-Header "Checking Node.js (for Chocolatey)"
+Write-Header "Validating before Chocolatey"
 $nodePath = Get-Command node -ErrorAction SilentlyContinue
 $npmPath = Get-Command npm -ErrorAction SilentlyContinue
 $skipNodeInstall = $false
@@ -87,16 +87,16 @@ if ($nodePath -and $npmPath) {
         Write-Success "It seems you already have Node.js ($nodeVersion) and npm ($npmVersion), skipping..."
         $skipNodeInstall = $true
     } else {
-        Write-Warning "Node.js version ($nodeVersion) detected, but this script requires v22.x (LTS)."
-        Write-Info "Will attempt to install Node.js v22 later via Chocolatey."
+        Write-Warning "Node.js version ($nodeVersion) detected, you can upgrade to Node v22 (LTS)."
+        Write-Info "It will attempt to install Node.js v22 later via Chocolatey."
     }
 } else {
-    Write-Info "Node.js or npm not found. Will attempt to install Node.js v22 later via Chocolatey."
+    Write-Info "Node.js / npm not found. It will attempt to install Node.js v22 later via Chocolatey."
 }
 
 # -------------------- Chocolatey --------------------
 
-Write-Header "Checking Chocolatey"
+Write-Header "Installing Chocolatey"
 
 # Systematically define directories
 $UserProfile = [Environment]::GetFolderPath("UserProfile")
@@ -118,7 +118,7 @@ if (Test-Path $ChocoExePath) {
             Write-Success "Added Chocolatey to system PATH"
         } catch {
             Write-Warning "Could not add Chocolatey to system PATH (admin rights needed): $_"
-            Write-Host " → Please manually add '$ChocoBinPath' to your system PATH" -ForegroundColor Yellow
+            Write-Host "-> Please manually add '$ChocoBinPath' to your system PATH" -ForegroundColor Yellow
         }
     } else {
         Write-Info "Chocolatey already in system PATH environment"
@@ -159,7 +159,7 @@ if (Test-Path $ChocoExePath) {
         Write-Host "`n=====================================" -ForegroundColor Yellow
         Write-Host "WAITING FOR CHOCOLATEY INSTALLER..." -ForegroundColor Yellow
         Write-Host "Do not close this window. The installer will run in another Admin PowerShell." -ForegroundColor White
-        Write-Host "Once you finish the installation wizard, close the two window (Installer and another Powershell terminal) to continue." -ForegroundColor Cyan
+        Write-Host "Once you finish the installation wizard, close the two window (Installer (.MSI file) and another Powershell blank terminal) to continue." -ForegroundColor Cyan
         Write-Host "=====================================" -ForegroundColor Yellow
 
         while (-not $proc.HasExited) {
@@ -476,7 +476,7 @@ Write-Info "Redis Server installation process completed."
 
 # -------------------- Node.js --------------------
 
-Write-Header "Checking Node.js"
+Write-Header "Checking for Node.js"
 $nodePath = Get-Command node -ErrorAction SilentlyContinue
 $npmPath  = Get-Command npm -ErrorAction SilentlyContinue
 
@@ -527,7 +527,8 @@ Write-Host "Run 'npm install -g pnpm' for intensive development experience workf
 Write-Host "Run 'npm install -g serverless' as part of usage for serverless commands." -ForegroundColor Cyan
 Write-Host "Run 'npm install --force' inside CAP101 project to install dependencies." -ForegroundColor Yellow
 Write-Info "For Redis Server usage:"
-Write-Host " → See: https://github.com/redis-windows/redis-windows?tab=readme-ov-file#service-installation" -ForegroundColor Yellow
-Write-Host " → Start service: net start Redis" -ForegroundColor Yellow
+Write-Host "-> See: https://github.com/redis-windows/redis-windows?tab=readme-ov-file#service-installation" -ForegroundColor Yellow
+Write-Host "-> Start service: net start Redis" -ForegroundColor Yellow
+Write-Host "-> Start service: net stop Redis" -ForegroundColor Yellow
 Write-Host "`nPress any key to exit..." -ForegroundColor Yellow
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")

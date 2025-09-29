@@ -4,30 +4,9 @@ const cors = require('cors');
 const serverless = require('serverless-http');
 const mainRoutes = require('./routes/helper');
 const sequelize = require('./config/db.config');
-const redis = require('redis');
 
 dotenv.config();
 const app = express();
-
-const redisClient = redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
-
-redisClient.on('error', (err) => console.error('Redis Client Error', err));
-
-const connectRedis = async () => {
-  try {
-    await redisClient.connect();
-    console.log('Redis client connected successfully');
-  } catch (err) {
-    console.error('Failed to connect to Redis:', err);
-    setTimeout(connectRedis, 5000);
-  }
-};
-connectRedis();
-
-// To allow be interact with controllers
-app.locals.redisClient = redisClient;
 
 // To allow JSON Body Requests
 app.use(express.json({ limit: '10mb' }));
@@ -72,10 +51,5 @@ if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-  });
-
-  process.on('SIGINT', async () => {
-    await redisClient.quit();
-    process.exit(0);
   });
 }

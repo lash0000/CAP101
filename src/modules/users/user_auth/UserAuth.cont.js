@@ -1,5 +1,5 @@
 const { sendEmail } = require('../../../services/nodemailer');
-const emailTemplate = require("../../../services/email.template");
+const emailTemplate = require('../../../services/email.template');
 const UserAuth = require('./UserAuth.model');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
@@ -26,10 +26,6 @@ class UserAuthController {
       }
 
       const otp = crypto.randomInt(100000, 999999).toString();
-      const redisClient = req.app.locals.redisClient;
-
-      if (!redisClient.isOpen) await redisClient.connect();
-      await redisClient.setEx(`otp:${email}`, 5 * 60, otp);
 
       const { html, text, subject } = await emailTemplate.renderAll('generate_otp', {
         otp,
@@ -53,7 +49,7 @@ class UserAuthController {
       console.error('Error in OTP request:', error);
       return res.status(500).json({
         error: 'Internal server error',
-        details: error.message
+        details: error.message,
       });
     }
   }
@@ -85,16 +81,8 @@ class UserAuthController {
         });
       }
 
-      const redisClient = req.app.locals.redisClient;
-      if (!redisClient.isOpen) await redisClient.connect();
-
-      const storedOtp = await redisClient.get(`otp:${email}`);
-      if (!storedOtp || storedOtp !== otp) {
-        return res.status(400).json({
-          error: 'Invalid or expired OTP',
-          success: false,
-        });
-      }
+      // Note: OTP verification is no longer performed due to Redis removal
+      // Consider implementing an alternative storage mechanism for OTPs
 
       if (!process.env.JWT_SECRET) {
         console.error('JWT_SECRET is not defined in environment variables');
@@ -105,21 +93,18 @@ class UserAuthController {
       }
 
       const jwtToken = jwt.sign(
-        { email, purpose: 'registration' },
+        {
+          email: email,
+          purpose: 'registration',
+        },
         process.env.JWT_SECRET,
-        { expiresIn: '45m' }
+        { expiresIn: '45m' },
       );
 
-      // Store token in Redis for single-use validation
-      await redisClient.setEx(`registration_token:${jwtToken}`, 45 * 60, email);
-
-      // Delete OTP after successful verification
-      await redisClient.del(`otp:${email}`);
-
       const { html, text, subject } = await emailTemplate.renderAll('verify_otp', {
-        title: 'OTP Verification Successful',
+        title: "OTP Verification Successful",
         header: "Barangay Sta. Monica's of Quezon City Portal",
-        body: 'Your OTP was successfully verified. Please proceed to the next process to complete registration.',
+        body: "Your OTP was successfully verified. Please proceed to the next process to complete registration.",
       });
 
       await sendEmail({
@@ -144,28 +129,18 @@ class UserAuthController {
     }
   }
 
+  // This is intended for registration too (direct system)
   async createUserAuth(req, res) {
     try {
-      // Check if email and purpose are set by middleware
-      if (!req.email || !req.tokenData || req.tokenData.purpose !== 'registration') {
+      if (!req.email) {
         return res.status(401).json({
-          error: 'Authentication required. Please provide a valid registration token.',
+          error: 'Authentication required. Please provide a valid token.',
           success: false,
         });
       }
 
       const { email } = req;
 
-      // Re-validate email format
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        return res.status(400).json({
-          error: 'Invalid email format in token',
-          success: false,
-        });
-      }
-
-      // Validate request body
       if (!req.body || Object.keys(req.body).length === 0) {
         return res.status(400).json({
           error: 'Request body is required',
@@ -175,7 +150,6 @@ class UserAuthController {
 
       const { username, password } = req.body;
 
-      // Check for missing fields
       const missingFields = [];
       if (!username) missingFields.push('username');
       if (!password) missingFields.push('password');
@@ -187,7 +161,6 @@ class UserAuthController {
         });
       }
 
-      // Validate username and password length
       if (username.length < 3) {
         return res.status(400).json({
           error: 'Username must be at least 3 characters long',
@@ -202,7 +175,6 @@ class UserAuthController {
         });
       }
 
-      // Check for existing users
       const existingUserByEmail = await UserAuth.findOne({ where: { email } });
       if (existingUserByEmail) {
         return res.status(409).json({
@@ -219,7 +191,6 @@ class UserAuthController {
         });
       }
 
-      // Create user
       const userId = uuidv4();
       const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
 
@@ -231,12 +202,6 @@ class UserAuthController {
         account_type: 'system',
       });
 
-      // Invalidate the registration token
-      const redisClient = req.app.locals.redisClient;
-      if (!redisClient.isOpen) await redisClient.connect();
-      await redisClient.del(`registration_token:${req.headers['authorization'].split(' ')[1]}`);
-
-      // Send welcome email
       const { html, text, subject } = await emailTemplate.renderAll('welcome', {
         username,
         title: "Welcome to Barangay Sta. Monica's Portal",
@@ -252,7 +217,7 @@ class UserAuthController {
       });
 
       res.status(201).json({
-        message: 'User registered successfully',
+        message: 'New user was registered successfully',
         user: {
           user_id: user.user_id,
           username: user.username,
@@ -273,4 +238,3 @@ class UserAuthController {
 }
 
 module.exports = new UserAuthController();
-

@@ -14,23 +14,12 @@ const authJWT = async (req, res, next) => {
   try {
     // Verify JWT_SECRET exists
     if (!process.env.JWT_SECRET) {
-      console.error('JWT_SECRET is not defined in environment variables');
+      console.error('JWT_SECRET is missing in your environment variables');
       return res.status(500).json({ error: 'Server configuration error' });
     }
-
-    // JWT: Verify toke and purpose
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== 'registration') {
       return res.status(401).json({ error: 'Invalid token purpose' });
-    }
-
-    // JWT: Check if token is still valid in Redis
-    const redisClient = req.app.locals.redisClient;
-    if (!redisClient.isOpen) await redisClient.connect();
-
-    const storedEmail = await redisClient.get(`registration_token:${token}`);
-    if (!storedEmail || storedEmail !== decoded.email) {
-      return res.status(401).json({ error: 'Token already used or invalid' });
     }
 
     req.email = decoded.email;
