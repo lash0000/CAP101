@@ -5,11 +5,8 @@ This is Node.js Serverless Framework App based that empowers Express.js way.
 > [!TIP]
 > For just a wacky-hacky experience you may wanted to run `automated-install` with PowerShell (Admin) please see powershell branch.
 
-> [!NOTE]
-> During npm installation, just ignore warning errors from mismanaged versions of `serverless-dotenv-plugin` and `serverless-offline` if you need to add more libraries just do `npm install <pkgname> --force`.
-
 ```term
-npm install --force
+npm install
 ```
 
 ## Usage
