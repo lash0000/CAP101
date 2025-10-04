@@ -2,8 +2,8 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const serverless = require('serverless-http');
-const mainRoutes = require('./routes/helper');
-const sequelize = require('./config/db.config');
+const mainRoutes = require('./src/routes/helper');
+const sequelize = require('./src/config/db.config');
 
 dotenv.config();
 const app = express();

@@ -1,56 +1,45 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../../../config/db.config');
 
-// stored credentials.
-//
-// TODO: OAuth, username, pwd, phonenumber, country, email_address, account_type (Gmail or system)
-
 const UserAuth = sequelize.define('UserAuth', {
   auth_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
     autoIncrement: true
   },
   user_id: {
-    type: DataTypes.UUID,
-    unique: true,
+    type: DataTypes.UUIDV4,
     allowNull: false
   },
   username: {
     type: DataTypes.STRING(50),
+    unique: true,
     allowNull: false
   },
   email: {
-    type: DataTypes.STRING(100),
+    type: DataTypes.VARCHAR(255),
+    unique: true,
     allowNull: false
   },
   password: {
-    type: DataTypes.STRING(255),
-    allowNull: false
-  },
-  phone_number: {
-    type: DataTypes.STRING(50),
+    type: DataTypes.TEXT,
     allowNull: true
   },
-  account_type: {
-    type: DataTypes.STRING(50),
-    allowNull: false
+  acc_type: {
+    type: DataTypes.ENUM,
+    defaultValue: "system"
   },
   access_token: {
-    type: DataTypes.STRING(255),
+    type: VARCHAR(255),
     allowNull: true
   },
   refresh_token: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  expiration: {
-    type: DataTypes.DATE,
+    type: VARCHAR(255),
     allowNull: true
   }
 }, {
   tableName: 'user_auth',
-  timestamps: false
+  timestamps: true
 });
 
 module.exports = UserAuth;

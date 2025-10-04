@@ -45,18 +45,9 @@ package:
 
 functions:
   mainRoutes:
-    handler: src/app.handler
+    handler: app.handler
     timeout: 28
     events:
       - httpApi:
           path: /{proxy+}
-          method: get
-      - httpApi:
-          path: /{proxy+}
-          method: post
-      - httpApi:
-          path: /{proxy+}
-          method: put
-      - httpApi:
-          path: /{proxy+}
-          method: delete
+          method: any
