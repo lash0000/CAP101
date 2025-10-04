@@ -1,7 +1,7 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('../../../config/db.config');
 
-const UserAuth = sequelize.define('UserAuth', {
+const UserCredentials = sequelize.define('UserCreds', {
   auth_id: {
     type: DataTypes.BIGINT,
     primaryKey: true,
@@ -9,6 +9,7 @@ const UserAuth = sequelize.define('UserAuth', {
   },
   user_id: {
     type: DataTypes.UUIDV4,
+    defaultValue: DataTypes.UUIDV4,
     allowNull: false
   },
   username: {
@@ -17,7 +18,7 @@ const UserAuth = sequelize.define('UserAuth', {
     allowNull: false
   },
   email: {
-    type: DataTypes.VARCHAR(255),
+    type: DataTypes.STRING(50),
     unique: true,
     allowNull: false
   },
@@ -26,20 +27,25 @@ const UserAuth = sequelize.define('UserAuth', {
     allowNull: true
   },
   acc_type: {
-    type: DataTypes.ENUM,
+    type: DataTypes.ENUM('system', 'google'),
     defaultValue: "system"
   },
   access_token: {
-    type: VARCHAR(255),
+    type: DataTypes.STRING(50),
     allowNull: true
   },
   refresh_token: {
-    type: VARCHAR(255),
+    type: DataTypes.STRING(50),
     allowNull: true
+  },
+  verified: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false
   }
 }, {
-  tableName: 'user_auth',
+  tableName: 'user_credentials',
   timestamps: true
 });
 
-module.exports = UserAuth;
+module.exports = UserCredentials;

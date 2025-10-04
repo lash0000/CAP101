@@ -3,7 +3,6 @@ app: cap101
 service: cap101
 
 plugins:
-  - serverless-dotenv-plugin
   - serverless-offline
 
 provider:

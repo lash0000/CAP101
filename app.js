@@ -2,7 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const serverless = require('serverless-http');
-const mainRoutes = require('./src/routes/helper');
+const mainRoutes = require('./src/utils/helpers');
 const sequelize = require('./src/config/db.config');
 
 dotenv.config();
@@ -33,7 +33,7 @@ app.get('/', (req, res) => {
 });
 
 // Sequelize (ORM) thru my postgre
-const testDbConnection = async () => {
+const db_postgres = async () => {
   try {
     await sequelize.authenticate();
     console.log('PostgreSQL database is connected YAAY');
@@ -42,7 +42,7 @@ const testDbConnection = async () => {
     setTimeout(testDbConnection, 5000);
   }
 };
-testDbConnection();
+db_postgres();
 
 // Export handler for Serverless
 module.exports.handler = serverless(app);

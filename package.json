@@ -8,6 +8,7 @@
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^17.2.1",
     "email-templates": "^12.0.3",
     "express": "^4.19.2",
@@ -23,7 +24,6 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "serverless-dotenv-plugin": "^6.0.0",
     "serverless-offline": "^14.4.0"
   },
   "scripts": {
