@@ -27,7 +27,7 @@ const sendEmail = async (options) => {
   try {
     const result = transporter.sendMail({
       from: {
-        name: "Barangay Santa Monica of Quezon City",
+        name: "Brgy. Santa Monica Services",
         address: process.env.SMTP_SERVICE,
       },
       to,

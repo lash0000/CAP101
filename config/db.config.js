@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const sequelize = new Sequelize(process.env.POSTGRE_HOST || '', {
+const db_sequelize = new Sequelize(process.env.POSTGRE_HOST || '', {
   dialect: 'postgres',
   dialectOptions: {
     ssl: {
@@ -20,4 +20,4 @@ const sequelize = new Sequelize(process.env.POSTGRE_HOST || '', {
 });
 
 
-module.exports = sequelize;
+module.exports = db_sequelize;

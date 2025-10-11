@@ -18,6 +18,7 @@ provider:
     POSTGRE_DB_PWD: ${env:POSTGRE_DB_PWD}
     SMTP_SERVICE: ${env:SMTP_SERVICE}
     SMTP_APP: ${env:SMTP_APP}
+    JWT_SECRET: ${env:JWT_SECRET}
   httpApi:
     cors:
       allowedOrigins:
@@ -41,10 +42,11 @@ package:
     - .vscode/**
     - venv/**
     - coverage/**
+    - undefined/**
 
 functions:
   mainRoutes:
-    handler: app.handler
+    handler: server.handler
     timeout: 28
     events:
       - httpApi:

@@ -1,12 +1,87 @@
-html
+doctype html
+html(lang="en")
   head
-    title Welcome to Barangay Santa Monica Portal sa Quezon City
+    meta(charset="UTF-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1.0")
+    title Welcome, Barangay Santa Monica Services from Quezon City. 
+    style.
+      body {
+        margin: 0;
+        padding: 20px;
+        font-family: 'Arial', sans-serif;
+        background-color: #f1f1f1;
+      }
+      @media only screen and (max-width: 600px) {
+        body {
+          padding: 10px !important;
+        }
+
+        div[style*="max-width:600px"] {
+          max-width: 100% !important;
+          margin: 0 auto !important;
+          border-radius: 0 !important;
+        }
+
+        div[style*="padding:32px 40px"] {
+          padding: 20px !important;
+        }
+
+        div[style*="padding:36px"] {
+          padding: 24px !important;
+        }
+
+        img {
+          width: 150px !important;
+          height: auto !important;
+        }
+
+        div[style*="font-size:24px"] {
+          font-size: 20px !important;
+        }
+
+        div[style*="font-size:14px"] {
+          font-size: 13px !important;
+          line-height: 1.5 !important;
+        }
+
+        div[style*="padding:16px 40px"] {
+          padding: 12px 20px !important;
+        }
+      }
   body
-    h1 Magandang Araw!
-    p You are now registered sa ating website portal. We're excited to have you patungo sa bagong sistema!
-    p To start using our services, please verify your email address sa ating profile.
-    p Para kapag may nais na ipabatid sa ating barangay meron tayong ilulunsad na online ticketing at online application para sa mga dokumento na kailangan natin, dito lamang mismo sa ating tanggapan.
-    br
-    p Lubos na gumagalang, 
-    p Barangay Santa Monica 
-    p Kasama mo sa pag-unlad
+    div(style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1);")
+      
+      // Header
+      div(style="background-color:#227D53;text-align:center;")
+        div(style="display:inline-block;")
+          img(src="https://95306gu5u4.ufs.sh/f/uBRuoG2BEPFDBrb1g0aDM9AeOZ3oCyXH0dsq5UuJjlR2vx1t", alt="Unofficial Logo", style="width:200px;object-fit:cover;")
+
+      // Content
+      div(style="padding:32px 40px;color:#333333;line-height:1.6;")
+        div(style="margin-bottom:16px;font-size:24px;font-weight:700;") Welcome,
+        
+        div(style="margin-bottom:16px;font-size:14px;")
+          | Dito sa ating online website portal we're excited to have you here
+
+        div(style="margin-bottom:16px;font-size:14px;")
+          | To start using our services, please verify your email address sa ating profile.
+
+        div(style="margin-bottom:16px;font-size:14px;")
+          | Para kapag may nais na ipabatid sa ating barangay meron tayong ilulunsad na online ticketing at online application para sa mga dokumento na kailangan natin, dito lamang mismo sa ating tanggapan.
+
+        div(style="margin-bottom:16px;font-size:14px;")
+          | This service account is open for replies / inquiries. Kung may questions, feel free to respond directly to this message.
+
+        div(style="margin-top:16px;font-size:14px;")
+          | Maraming Salamat sa Suporta mula sa ating Barangay.
+
+        div(style="margin-top:16px;font-size:14px;")
+          | Lubos na gumagalang,
+          br
+          | Barangay Santa Monica ng Quezon City, Kasama mo sa pag-unlad!
+
+      // Footer
+      div(style="background-color:#f4f4f4;padding:16px 40px;font-size:12px;color:#666666;line-height:1.5;text-align:center;")
+        p(style="margin:0;")
+          | Barangay Santa Monica is one of the progressive barangays located in District 5 & Novaliches, under the administrative jurisdiction of Quezon City Hall. Novaliches District Center, Jordan Plains, Barangay Sta. Monica.
+        p(style="margin: 12px 0 0 0;") © #{new Date().getFullYear()}, Barangay Santa Monica of Quezon City, All rights reserved.
