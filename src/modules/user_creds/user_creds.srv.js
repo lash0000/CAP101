@@ -76,13 +76,16 @@ class UserCredsService extends UserSessionsService {
       // Commit DB Transaction
       await transaction.commit();
 
-      // Add refresh token to HTTP-only cookie 
+      // Add refresh token to HTTP-only cookie
+      // Applicable for AWS API Gateway
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // 'None' for cross-site
+        path: '/',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });
+
 
       // Return success response
       return {
