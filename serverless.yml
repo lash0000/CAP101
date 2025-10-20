@@ -45,10 +45,28 @@ package:
     - undefined/**
 
 functions:
-  mainRoutes:
+  api:
     handler: server.handler
-    timeout: 28
     events:
       - httpApi:
           path: /{proxy+}
-          method: any
+          method: ANY
+          cors:
+            allowedOrigins:
+              - http://localhost:5173
+            allowedHeaders:
+              - Content-Type
+              - Authorization
+              - X-Amz-Date
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - Cookie
+            allowedMethods:
+              - OPTIONS
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+            allowCredentials: true
+
