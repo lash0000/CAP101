@@ -23,6 +23,7 @@ provider:
     cors:
       allowedOrigins:
         - http://localhost:5173
+        - https://barangay-santa-monica.vercel.app
       allowedHeaders:
         - Content-Type
         - Authorization
