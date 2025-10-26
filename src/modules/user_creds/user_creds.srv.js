@@ -80,8 +80,8 @@ class UserCredsService extends UserSessionsService {
       // Applicable for AWS API Gateway
       res.cookie('refreshToken', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'Strict' : 'None',
+        secure: true,
+        sameSite: 'None',
         maxAge: 15 * 24 * 60 * 60 * 1000,
       });
 
