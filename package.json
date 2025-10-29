@@ -21,15 +21,14 @@
     "preview-email": "^3.1.0",
     "pug": "^3.0.3",
     "sequelize": "^6.37.7",
-    "serverless-http": "^3.2.0",
     "useragent": "^2.3.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "serverless-offline": "^14.4.0"
+    "nodemon": "^3.1.10"
   },
   "scripts": {
-    "dev": "nodemon --exec \"serverless offline\" --ext js,json,yml,pug,css"
+    "dev": "nodemon server.js",
+    "start": "node server.js"
   }
 }
