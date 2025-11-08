@@ -279,7 +279,9 @@ class UserCredsService extends UserSessionsService {
       });
 
       // Generate a short-lived token containing the OTP
-      const token = super.f_generateAccessToken({ email, otp }, '5m');
+      // Originally, its 5 minutes but in this Nodemailer based we need to make it 15 minutes validity.
+      // Due to Google's low priority strategy according to OpenAI. 
+      const token = super.f_generateAccessToken({ email, otp }, '15m');
 
       // Return confirmation and token
       return { message: 'New OTP generated and sent to your email. Use the token for verification.', token };
